@@ -112,7 +112,7 @@ class LibraryManager(object):
         if member is None:
             print('Invalid member ID')
             return False
-        raise ZeroDivisionError
+        # raise ZeroDivisionError
 
         book = self.books.get_book(book_id)
         if not book:
