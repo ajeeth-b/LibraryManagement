@@ -105,10 +105,9 @@ class LibraryManager(object):
         if type(book_id) != int:
             raise TypeError('ID should be of integer type')
 
-        # raise ZeroDivisionError
-
         member = self.members.get_member(member_id)
-        # raise ZeroDivisionError
+        # print('member',member)
+        # self.print_all_members()
         if member is None:
             print('Invalid member ID')
             return False
@@ -124,7 +123,7 @@ class LibraryManager(object):
             return False
 
         self.books_taken += [(book_id, member_id)]
-        print('Success')
+        print('Success.')
         return True
 
     def delete_entry(self, member_id, book_id):
