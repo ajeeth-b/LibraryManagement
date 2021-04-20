@@ -31,5 +31,5 @@ def test_add_empty_book():
 
 
 def test_borrow_book():
-    assert library.add_member('ajeeth')
-    assert library.borrow_book(1, 1) == True
+    # assert library.add_member('ajeeth')
+    assert library.borrow_book(1, 1) is True
