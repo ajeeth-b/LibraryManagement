@@ -8,7 +8,6 @@ class Book(ndb.Model):
 
 
 class Member(ndb.Model):
-	# member_id = ndb.StringProperty()
 	name = ndb.StringProperty()
 
 

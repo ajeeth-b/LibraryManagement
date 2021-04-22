@@ -170,21 +170,3 @@ def delete_member(member_id):
 	if member is None:
 		raise MemberNotFound
 	member.key.delete()
-
-# try:
-# 	create_book('book1', 'author', 2)
-# 	create_member('ajeeth')
-# 	return_book(1, '502c895d-dfd5-44a0-a1b4-39785a4e5dcb')
-# except Exception as e:
-# 	print(e)
-
-# print(get_all_members())
-# print(get_all_books())
-
-# print(borrow_data(True))
-
-# print(update_book(1, 'new name', 'new author'))
-
-# print(delete_book(5))
-
-# print(get_all_books(True))
