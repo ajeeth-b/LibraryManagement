@@ -15,4 +15,3 @@ class Borrow(ndb.Model):
 	book_id = ndb.IntegerProperty()
 	member_id = ndb.StringProperty()
 	returned = ndb.BooleanProperty(default=False)
-
