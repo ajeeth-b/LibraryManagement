@@ -15,3 +15,9 @@ class Borrow(ndb.Model):
 	book_id = ndb.IntegerProperty()
 	member_id = ndb.StringProperty()
 	returned = ndb.BooleanProperty(default=False)
+
+
+class User(ndb.Model):
+	name = ndb.StringProperty()
+	password = ndb.StringProperty()
+	member_id = ndb.StringProperty()

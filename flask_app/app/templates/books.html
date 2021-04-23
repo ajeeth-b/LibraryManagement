@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Library</title>
+</head>
+<body>
+	<p>Hello {{g.user['name']}}</p>	
+	<p> Your member ID is {{g.user['member_id']}}</p>
+
+	<table>
+		<tr>
+			<th> Name</th>
+			<th> Author</th>
+			<th> ISBN</th>
+		</tr>
+		{% for data in books %}
+		<tr>
+			<td>{{data['name']}}</td>
+			<td>{{data['author']}}</td>
+			<td>{{data['isbn']}}</td>
+			<td><a onclick='borrow_book( {{data["isbn"]}} )'>Take</a></td>
+		</tr>
+		{% endfor %}
+	</table>
+
+	<form method='post' action='/borrow-book' id='borrow_book_form' style="display: none;">
+		<input type="number" name="book_id" id="book_id">
+	</form>
+
+	<script type="text/javascript">
+		function borrow_book(book_id){
+			inp = document.getElementById('book_id');
+			inp.value = book_id;
+			document.getElementById('borrow_book_form').submit()
+		}
+	</script>
+	
+</body>
+</html>
