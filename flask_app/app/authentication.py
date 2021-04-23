@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, session, request, redirect, current_app as app, g
-from .user_manager import get_user_as_dict
+from .user_manager import get_user_as_dict, create_user
 from werkzeug.security import check_password_hash
 
 
@@ -48,3 +48,24 @@ def login_user():
 @auth.route('/signup', methods=['GET'])
 def get_signup_page():
 	return render_template('signup.html')
+
+
+@auth.route('/signup', methods=['POST'])
+def signup():
+	email = request.form.get('email', None)
+	name = request.form.get('name', None)
+	password = request.form.get('password', None)
+
+	if email is None or password is None or name is None:
+		return render_template('signup.html', message='Email, Name and Password are required*')
+
+	user = get_user_as_dict(email)
+	if user:
+		return render_template('signup.html', message='Email already exists.')
+
+	user = create_user(email, name, password)
+
+	del user['password']
+	session['session'] = user
+
+	return redirect('/')
