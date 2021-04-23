@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Library</title>
+</head>
+<body>
+	<p>Hello {{g.user['name']}}</p>	
+	<p> Your member ID is {{g.user['member_id']}}</p>
+
+	<table>
+		<tr>
+			<th> Name</th>
+			<th> Author</th>
+			<th> ISBN</th>
+		</tr>
+		{% for data in book_data %}
+		<tr>
+			<td>{{data['name']}}</td>
+			<td>{{data['author']}}</td>
+			<td>{{data['isbn']}}</td>
+			<td><a onclick='return_book( {{data["isbn"]}} )'>return</a></td>
+		</tr>
+		{% endfor %}
+	</table>
+
+	<form method='post' action='/return-book' id='return_book_form' style="display: none;">
+		<input type="number" name="book_id" id="book_id">
+	</form>
+
+	<script type="text/javascript">
+		function return_book(book_id){
+			inp = document.getElementById('book_id');
+			inp.value = book_id;
+			document.getElementById('return_book_form').submit()
+		}
+	</script>
+	
+</body>
+</html>

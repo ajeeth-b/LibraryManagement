@@ -1,8 +1,8 @@
-from flask import Blueprint, jsonify, request, url_for
+from flask import Blueprint, jsonify, request
 from .library_manager import *
 from google.cloud.ndb.exceptions import BadValueError
 
-library = Blueprint('library', __name__)
+library = Blueprint('library', __name__, url_prefix='/api')
 
 
 # Book Actions
@@ -136,6 +136,16 @@ def delete_member_handler(member_id):
         return jsonify({'status': 'failed', 'message': 'Bad Value'})
 
     return jsonify({'status': 'success', 'message': 'Member deleted successfully.'})
+
+
+@library.route('/library/members/<uuid:member_id>/books', methods=['GET'])
+def books_borrowed_by_member(member_id):
+    try:
+        book_ids = get_book_borrowed_by_member(str(member_id))
+    except MemberNotFound:
+        return jsonify({'status': 'failed', 'message': 'Member Not Found'})
+
+    return jsonify({'books': book_ids})
 
 
 # Library Actions
