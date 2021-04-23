@@ -1,6 +1,7 @@
 from .models import User, Member
 from .utils import with_client_context
 from uuid import uuid4
+from werkzeug.security import generate_password_hash
 
 
 @with_client_context
@@ -12,7 +13,7 @@ def create_user(email, name, password):
 	member = Member(id= member_id, name=name)
 	member.put()
 
-	user = User(id=email, name=name, password=password, member_id=member_id)
+	user = User(id=email, name=name, password=generate_password_hash(password), member_id=member_id)
 	user.put()
 
 	return user_to_dict(user)

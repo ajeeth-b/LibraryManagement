@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, session, request, redirect, current_app as app, g
 from .user_manager import get_user_as_dict
-
+from werkzeug.security import check_password_hash
 
 
 def login_required(func):
@@ -37,7 +37,7 @@ def login_user():
 	if user is None:
 		return render_template('login.html', message='No such user.')
 
-	if user['password'] != password:
+	if not check_password_hash(user['password'],password):
 		return render_template('login.html', message='Incorrect Password.')
 
 	del user['password']
@@ -45,3 +45,6 @@ def login_user():
 
 	return redirect('/')
 
+@auth.route('/signup', methods=['GET'])
+def get_signup_page():
+	return render_template('signup.html')
