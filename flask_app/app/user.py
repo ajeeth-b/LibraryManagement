@@ -44,7 +44,8 @@ def user_returns_book():
 @user_blueprint.route('/borrow-book', methods=['GET'])
 def get_available_book_list():
 
-	book_data = get_all_books(available=True)
+	book_data, cursor, has_next = get_all_books(available=True)
+
 
 	return render_template('books.html', books=book_data)
 

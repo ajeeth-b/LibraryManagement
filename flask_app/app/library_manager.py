@@ -1,7 +1,6 @@
 from .models import Book, Member, Borrow
 from .utils import with_client_context
-from uuid import uuid4
-from google.cloud.ndb import Key
+from google.cloud.ndb import Key, Cursor
 
 
 class BookNotFound(Exception):
@@ -33,7 +32,7 @@ def create_book(name, author, isbn):
         raise DuplicateBook()
     book = Book(name=name, author=author, isbn=isbn)
     book.put()
-    return book.to_dict()
+    return {**book.to_dict(), **{'id':book.key.id()}}
 
 @with_client_context
 def query_book(book_id):
@@ -43,7 +42,7 @@ def query_book(book_id):
     return {**book.to_dict(), **{'id':book.key.id()}}  
 
 @with_client_context
-def get_all_books(available=False):
+def get_all_books(available=False, per_page=10, cursor=None):
     data = []
 
     query = Book.query()
@@ -52,9 +51,15 @@ def get_all_books(available=False):
         for i in Borrow.query().filter(Borrow.returned == False).fetch(projection=['book_id']):
             query = query.filter(Book.isbn != i.book_id)
 
-    for book in query:
-        data.append({**book.to_dict(), **{'id':book.key.id()}})
-    return data
+    books, new_cursor, has_next = query.fetch_page(per_page, start_cursor=Cursor(urlsafe=cursor))
+
+    print(new_cursor, has_next)
+
+    if new_cursor is not None:
+        new_cursor = new_cursor.urlsafe().decode('utf-8')
+
+    books = [{**book.to_dict(), **{'id':book.key.id()}} for book in books]
+    return books, new_cursor, has_next
 
 
 @with_client_context
@@ -67,7 +72,7 @@ def update_book(book_id, name=None, author=None):
     if author is not None:
         book.author = author
     book.put()
-    return book.to_dict()
+    return {**book.to_dict(), **{'id':book.key.id()}}
 
 
 @with_client_context
@@ -85,14 +90,10 @@ def delete_book(book_id):
 
 @with_client_context
 def create_member(name):
-    member_id = str(uuid4())
-    member = Member(id= member_id, name=name)
+    member = Member(name=name)
     member.put()
 
-    member_data = member.to_dict()
-    member_data.update({'id':member_id})
-    
-    return member_data
+    return {**member.to_dict(),**{'id':member.key.id()}}
 
 
 @with_client_context
@@ -100,19 +101,18 @@ def query_member(member_id):
     member = Member.get_by_id(member_id)
     if member is None:
         raise MemberNotFound()
-    data = member.to_dict()
-    data['id'] = member.key.id()
-    return data
+
+    return {**member.to_dict(),**{'id':member.key.id()}}
 
 
 @with_client_context
-def get_all_members():
-    data = []
-    for i in Member.query():
-        member = i.to_dict()
-        member['id'] = i.key.id()
-        data.append(member)
-    return data
+def get_all_members(per_page=10, cursor=None):
+    members, new_cursor, has_more = Member.query().fetch_page(per_page, start_cursor=Cursor(urlsafe=cursor))
+    
+    if new_cursor:
+        new_cursor = new_cursor.urlsafe().decode('utf-8')
+    members = [{**member.to_dict(), **{'id':member.key.id()}} for member in members]
+    return members, new_cursor, has_more
 
 @with_client_context
 def update_member(member_id, name=None):
@@ -122,7 +122,7 @@ def update_member(member_id, name=None):
     if name is not None:
         member.name = name
     member.put()
-    return member.to_dict()
+    return {**member.to_dict(),**{'id':member.key.id()}}
 
 
 @with_client_context
@@ -146,12 +146,19 @@ def get_book_borrowed_by_member(member_id):
 # Library Operations
 
 @with_client_context
-def borrow_data(borrow_filter=None, per_page=10, next_cursor=None):
+def borrow_data(borrow_filter=None, per_page=10, cursor=None):
     query = Borrow.query()
     if borrow_filter is not None:
         query = query.filter(Borrow.returned == borrow_filter)
-    # data = query.fetch_page(per_page)
-    return [i.to_dict() for i in query]
+
+    if cursor is not None:
+        cursor = Cursor(urlsafe=cursor)
+
+    data, new_cursor, has_more = query.fetch_page(per_page, start_cursor=cursor)
+
+    if new_cursor is not None:
+        new_cursor = new_cursor.urlsafe().decode('utf-8')
+    return [{**i.to_dict(), **{'id':i.key.id()}} for i in data], new_cursor, has_more
 
 
 @with_client_context

@@ -10,9 +10,24 @@ library = Blueprint('library', __name__, url_prefix='/api')
 @library.route('/library/books', methods=['GET'])
 def get_all_books_handler():
     available = request.args.get('available', True)
+    cursor = request.args.get('cursor', None)
+    per_page = request.args.get('per-page', '10')
+
+    if per_page.isdigit():
+        per_page = int(per_page)
+    else:
+        per_page = 10
+
     if available != 'true':
         available = False
-    return jsonify({'books': get_all_books(available)})
+
+    books, next_cursor, has_next = get_all_books(
+        available=available, 
+        cursor=cursor,
+        per_page=per_page
+        )
+    data = { 'books':books, 'next_cursor':next_cursor, 'prev_cursor':cursor}
+    return jsonify({'data': data})
 
 
 @library.route('/library/books', methods=['POST'])
@@ -81,7 +96,22 @@ def delete_book_handler(book_id):
 
 @library.route('/library/members', methods=['GET'])
 def get_all_members_handler():
-    return jsonify({'members': get_all_members()})
+    cursor = request.args.get('cursor', None)
+    per_page = request.args.get('per-page', '10')
+
+    if per_page.isdigit():
+        per_page = int(per_page)
+    else:
+        per_page = 10
+
+    members, next_cursor, has_next = get_all_members(
+        cursor=cursor,
+        per_page=per_page
+        )
+    data = { 'members':members, 'next_cursor':next_cursor, 'prev_cursor':cursor}
+
+
+    return jsonify({'data':data})
 
 
 @library.route('/library/members', methods=['POST'])
@@ -97,25 +127,26 @@ def create_new_member_handler():
     return jsonify({'status': 'success', 'message': 'member added successfully', 'member': member})
 
 
-@library.route('/library/members/<uuid:member_id>', methods=['GET'])
+@library.route('/library/members/<int:member_id>', methods=['GET'])
+@library.route('/library/members/<string:member_id>', methods=['GET'])
 def get_member_handler(member_id):
     try:
-        member = query_member(str(member_id))
+        member = query_member(member_id)
     except MemberNotFound:
         return jsonify({'status': 'failed', 'message': 'Member Not Found'})
 
     return jsonify({'member': member})
 
 
-@library.route('/library/members/<uuid:member_id>', methods=['PUT'])
+@library.route('/library/members/<int:member_id>', methods=['PUT'])
+@library.route('/library/members/<string:member_id>', methods=['PUT'])
 def update_member_handler(member_id):
     data = request.json
     if 'name' not in data:
         return jsonify({'status': 'failed', 'message': 'no data to change'})
 
     try:
-        member = update_member(
-            str(member_id),  # UUID to str
+        member = update_member(member_id,
             name=data.get('name'),
         )
     except MemberNotFound:
@@ -126,10 +157,11 @@ def update_member_handler(member_id):
     return jsonify({'member': member})
 
 
-@library.route('/library/members/<uuid:member_id>', methods=["DELETE"])
+@library.route('/library/members/<int:member_id>', methods=["DELETE"])
+@library.route('/library/members/<string:member_id>', methods=["DELETE"])
 def delete_member_handler(member_id):
     try:
-        delete_member(str(member_id))
+        delete_member(member_id)
     except MemberNotFound:
         return jsonify({'status': 'failed', 'message': 'Member Not Found'})
     except BadValueError:
@@ -137,11 +169,11 @@ def delete_member_handler(member_id):
 
     return jsonify({'status': 'success', 'message': 'Member deleted successfully.'})
 
-
-@library.route('/library/members/<uuid:member_id>/books', methods=['GET'])
+@library.route('/library/members/<int:member_id>/books', methods=['GET'])
+@library.route('/library/members/<string:member_id>/books', methods=['GET'])
 def books_borrowed_by_member(member_id):
     try:
-        book_ids = get_book_borrowed_by_member(str(member_id))
+        book_ids = get_book_borrowed_by_member(member_id)
     except MemberNotFound:
         return jsonify({'status': 'failed', 'message': 'Member Not Found'})
 
@@ -153,13 +185,27 @@ def books_borrowed_by_member(member_id):
 @library.route('/library', methods=['GET'])
 def get_borrowed_data_handler():
     borrow_filter = request.args.get('borrow', None)
+    cursor = request.args.get('cursor', None)
+    per_page = request.args.get('per-page', '10')
+
+    if per_page.isdigit():
+        per_page = int(per_page)
+    else:
+        per_page = 10
+
     if borrow_filter == 'true':
         borrow_filter = True
     elif borrow_filter == 'false':
         borrow_filter = False
-    else:
-        borrow_filter = None
-    return jsonify({'data': borrow_data(borrow_filter)})
+
+    data, next_cursor, has_next = borrow_data(
+        borrow_filter=borrow_filter, 
+        per_page=per_page, 
+        cursor=cursor,
+        )
+
+    resp_data = {'data': data, 'prev_cursor':cursor, 'next_cursor':next_cursor}
+    return jsonify(resp_data)
 
 
 @library.route('/library', methods=['POST'])
