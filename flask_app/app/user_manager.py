@@ -12,10 +12,10 @@ def create_user(email, name, password):
 	member = Member(name=name)
 	member.put()
 
-	user = User(id=email, name=name, password=generate_password_hash(password), member_id=member.key.id())
+	user = User(id=email, name=name, password=generate_password_hash(password), member_id=member.key)
 	user.put()
 
-	return {**user.to_dict(), **{'email':user.key.id()}}
+	return user.get_dict()
 
 
 @with_client_context
