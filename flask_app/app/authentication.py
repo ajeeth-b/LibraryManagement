@@ -40,6 +40,7 @@ def login_user():
 	if not check_password_hash(user['password'],password):
 		return render_template('login.html', message='Incorrect Password.')
 
+
 	del user['password']
 	session['session'] = user
 

@@ -141,8 +141,8 @@ def get_book_borrowed_by_member(member_id):
     if member is None:
         raise MemberNotFound()
     
-    books = Books.query().filter(Book.key == member.key)
-    books = [{**book.to_dict(), **{'id':book.key.id()}} for book in books]
+    books = Book.query().filter(Book.taken_by == member.key)
+    books = [book.get_dict() for book in books]
     return books
 
 

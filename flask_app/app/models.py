@@ -27,7 +27,7 @@ class User(ndb.Model):
 	member_id = ndb.KeyProperty()
 
 	def get_dict(self):
-		data = {**self.to_dict(), **{'id':self.key.id()}}
+		data = {**self.to_dict(), **{'id':self.key.id(), 'email':self.key.id()}}
 		if 'member_id' in data and data['member_id'] is not None:
 			data['member_id'] = data['member_id'].id()
 		return data

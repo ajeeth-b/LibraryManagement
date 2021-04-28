@@ -8,13 +8,7 @@ user_blueprint = Blueprint('user', __name__)
 @login_required
 def index():
 	try:
-		books_borrowed = get_book_borrowed_by_member(g.user['member_id'])
-		book_data = []
-		for book_id in books_borrowed:
-			try:
-				book_data += [query_book(book_id)]
-			except BookNotFound:
-				pass
+		book_data = get_book_borrowed_by_member(g.user['member_id'])
 	except MemberNotFound:
 		return redirect('/login')
 

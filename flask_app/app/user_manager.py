@@ -27,7 +27,7 @@ def get_user_as_dict(email):
 	user = get_user(email)
 	if user is None:
 		return None
-	return {**user.to_dict(), **{'email':user.key.id()}}
+	return user.get_dict()
 
 
 @with_client_context
