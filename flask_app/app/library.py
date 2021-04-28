@@ -9,24 +9,30 @@ library = Blueprint('library', __name__, url_prefix='/api')
 
 @library.route('/library/books', methods=['GET'])
 def get_all_books_handler():
-    available = request.args.get('available', True)
-    cursor = request.args.get('cursor', None)
-    per_page = request.args.get('per-page', '10')
 
+    per_page = request.args.get('per-page', '10')
     if per_page.isdigit():
         per_page = int(per_page)
     else:
-        per_page = 10
+        return jsonify({'status':'failed', "message":'per-page must be an integer'})
 
+    offset = request.args.get('offset', '0')
+    if offset.isdigit():
+        offset = int(offset)
+    else:
+        return jsonify({'status':'failed', "message":'offset must be an integer'})
+
+    available = request.args.get('available', True)
     if available != 'true':
         available = False
 
-    books, next_cursor, has_next = get_all_books(
+    books, offset, has_more = get_all_books(
         available=available, 
-        cursor=cursor,
-        per_page=per_page
+        per_page=per_page,
+        offset=offset
         )
-    data = { 'books':books, 'next_cursor':next_cursor, 'prev_cursor':cursor}
+
+    data = { 'status': 'success', 'books':books, 'next_offset':offset, 'has_more':has_more}
     return jsonify({'data': data})
 
 
@@ -56,7 +62,7 @@ def get_book_handler(book_id):
     except BadValueError:
         return jsonify({'status': 'failed', 'message': 'Bad Value'})
 
-    return jsonify({'book': book})
+    return jsonify({'status': 'success', 'book': book})
 
 
 @library.route('/library/books/<int:book_id>', methods=['PUT'])
@@ -76,7 +82,7 @@ def update_book_handler(book_id):
     except BadValueError:
         return jsonify({'status': 'failed', 'message': 'Bad Value'})
 
-    return jsonify({'book': book})
+    return jsonify({'status': 'success', 'book': book})
 
 
 @library.route('/library/books/<int:book_id>', methods=['DELETE'])
@@ -96,21 +102,24 @@ def delete_book_handler(book_id):
 
 @library.route('/library/members', methods=['GET'])
 def get_all_members_handler():
-    cursor = request.args.get('cursor', None)
     per_page = request.args.get('per-page', '10')
-
     if per_page.isdigit():
         per_page = int(per_page)
     else:
-        per_page = 10
+        return jsonify({'status':'failed', "message":'per-page must be an integer'})
 
-    members, next_cursor, has_next = get_all_members(
-        cursor=cursor,
-        per_page=per_page
+    offset = request.args.get('offset', '0')
+    if offset.isdigit():
+        offset = int(offset)
+    else:
+        return jsonify({'status':'failed', "message":'offset must be an integer'})
+
+    members, offset, has_more = get_all_members(
+        per_page=per_page,
+        offset=offset
         )
-    data = { 'members':members, 'next_cursor':next_cursor, 'prev_cursor':cursor}
 
-
+    data = {'status': 'success', 'members':members, 'next_offset':offset, 'has_more':has_more}
     return jsonify({'data':data})
 
 
@@ -135,7 +144,7 @@ def get_member_handler(member_id):
     except MemberNotFound:
         return jsonify({'status': 'failed', 'message': 'Member Not Found'})
 
-    return jsonify({'member': member})
+    return jsonify({'status': 'success', 'member': member})
 
 
 @library.route('/library/members/<int:member_id>', methods=['PUT'])
@@ -154,7 +163,7 @@ def update_member_handler(member_id):
     except BadValueError:
         return jsonify({'status': 'failed', 'message': 'Bad Value'})
 
-    return jsonify({'member': member})
+    return jsonify({'status': 'success', 'member': member})
 
 
 @library.route('/library/members/<int:member_id>', methods=["DELETE"])
@@ -177,7 +186,7 @@ def books_borrowed_by_member(member_id):
     except MemberNotFound:
         return jsonify({'status': 'failed', 'message': 'Member Not Found'})
 
-    return jsonify({'books': book_ids})
+    return jsonify({'status': 'success', 'books': book_ids})
 
 
 # Library Actions
@@ -185,31 +194,26 @@ def books_borrowed_by_member(member_id):
 @library.route('/library', methods=['GET'])
 def get_borrowed_data_handler():
     borrow_filter = request.args.get('borrow', None)
-    cursor = request.args.get('cursor', None)
     offset = request.args.get('offset', '0')
     per_page = request.args.get('per-page', '10')
 
     if per_page.isdigit():
         per_page = int(per_page)
     else:
-        per_page = 10
+        return jsonify({'status':'failed', "message":'per-page must be an integer'})
 
     if offset.isdigit():
         offset = int(offset)
     else:
-        offset = 0
+        return jsonify({'status':'failed', "message":'offset must be an integer'})
 
-    # data, next_cursor, has_more = borrow_data(
-    #     per_page=per_page, 
-    #     cursor=cursor,
-    #     )
-    data, next_cursor, has_more = borrow_data(
+    data, offset, has_more = borrow_data(
         per_page=per_page, 
         offset=offset,
         )
 
-    resp_data = {'data': data, 'prev_cursor':cursor, 'next_cursor':next_cursor, 'more':has_more}
-    return jsonify(resp_data)
+    data = {'status': 'success', 'data':data, 'next_offset':offset, 'has_more':has_more}
+    return jsonify(data)
 
 
 @library.route('/library', methods=['POST'])
