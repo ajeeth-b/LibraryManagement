@@ -186,6 +186,7 @@ def books_borrowed_by_member(member_id):
 def get_borrowed_data_handler():
     borrow_filter = request.args.get('borrow', None)
     cursor = request.args.get('cursor', None)
+    offset = request.args.get('offset', '0')
     per_page = request.args.get('per-page', '10')
 
     if per_page.isdigit():
@@ -193,18 +194,21 @@ def get_borrowed_data_handler():
     else:
         per_page = 10
 
-    if borrow_filter == 'true':
-        borrow_filter = True
-    elif borrow_filter == 'false':
-        borrow_filter = False
+    if offset.isdigit():
+        offset = int(offset)
+    else:
+        offset = 0
 
-    data, next_cursor, has_next = borrow_data(
-        borrow_filter=borrow_filter, 
+    # data, next_cursor, has_more = borrow_data(
+    #     per_page=per_page, 
+    #     cursor=cursor,
+    #     )
+    data, next_cursor, has_more = borrow_data(
         per_page=per_page, 
-        cursor=cursor,
+        offset=offset,
         )
 
-    resp_data = {'data': data, 'prev_cursor':cursor, 'next_cursor':next_cursor}
+    resp_data = {'data': data, 'prev_cursor':cursor, 'next_cursor':next_cursor, 'more':has_more}
     return jsonify(resp_data)
 
 

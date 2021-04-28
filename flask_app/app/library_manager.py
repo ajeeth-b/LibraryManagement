@@ -1,4 +1,4 @@
-from .models import Book, Member, Borrow
+from .models import Book, Member
 from .utils import with_client_context
 from google.cloud.ndb import Key, Cursor
 
@@ -32,14 +32,14 @@ def create_book(name, author, isbn):
         raise DuplicateBook()
     book = Book(name=name, author=author, isbn=isbn)
     book.put()
-    return {**book.to_dict(), **{'id':book.key.id()}}
+    return book.get_dict()
 
 @with_client_context
 def query_book(book_id):
     book = Book.get_by_id(book_id)
     if book is None:
         raise BookNotFound()
-    return {**book.to_dict(), **{'id':book.key.id()}}  
+    return book.get_dict()  
 
 @with_client_context
 def get_all_books(available=False, per_page=10, cursor=None):
@@ -47,18 +47,21 @@ def get_all_books(available=False, per_page=10, cursor=None):
 
     query = Book.query()
 
-    if available:
-        for i in Borrow.query().filter(Borrow.returned == False).fetch(projection=['book_id']):
-            query = query.filter(Book.isbn != i.book_id)
+    # if available:
+    #     for i in Borrow.query().filter(Borrow.returned == False).fetch(projection=['book_id']):
+    #         query = query.filter(Book.isbn != i.book_id)
 
     books, new_cursor, has_next = query.fetch_page(per_page, start_cursor=Cursor(urlsafe=cursor))
 
-    print(new_cursor, has_next)
+    temp_book, temp_cursor, has_next = query.fetch_page(1, start_cursor=new_cursor)
+    
+    if not has_next:
+        new_cursor = None
 
     if new_cursor is not None:
         new_cursor = new_cursor.urlsafe().decode('utf-8')
 
-    books = [{**book.to_dict(), **{'id':book.key.id()}} for book in books]
+    books = [book.get_dict() for book in books]
     return books, new_cursor, has_next
 
 
@@ -72,7 +75,7 @@ def update_book(book_id, name=None, author=None):
     if author is not None:
         book.author = author
     book.put()
-    return {**book.to_dict(), **{'id':book.key.id()}}
+    return book.get_dict()
 
 
 @with_client_context
@@ -108,7 +111,6 @@ def query_member(member_id):
 @with_client_context
 def get_all_members(per_page=10, cursor=None):
     members, new_cursor, has_more = Member.query().fetch_page(per_page, start_cursor=Cursor(urlsafe=cursor))
-    
     if new_cursor:
         new_cursor = new_cursor.urlsafe().decode('utf-8')
     members = [{**member.to_dict(), **{'id':member.key.id()}} for member in members]
@@ -137,63 +139,88 @@ def delete_member(member_id):
 def get_book_borrowed_by_member(member_id):
     member = Member.get_by_id(member_id)
     if member is None:
-        raise MemberNotFound
-    borrowed_books_id = Borrow.query().filter(Borrow.member_id == member_id, Borrow.returned == False)
-    borrowed_books_id = [i.book_id for i in borrowed_books_id]
-    return borrowed_books_id
+        raise MemberNotFound()
+    
+    books = Books.query().filter(Book.key == member.key)
+    books = [{**book.to_dict(), **{'id':book.key.id()}} for book in books]
+    return books
 
 
 # Library Operations
 
 @with_client_context
-def borrow_data(borrow_filter=None, per_page=10, cursor=None):
-    query = Borrow.query()
-    if borrow_filter is not None:
-        query = query.filter(Borrow.returned == borrow_filter)
+def borrow_data(per_page=10, cursor=None):
+    query = Book.query().filter(Book.taken_by != None)
 
     if cursor is not None:
         cursor = Cursor(urlsafe=cursor)
 
-    data, new_cursor, has_more = query.fetch_page(per_page, start_cursor=cursor)
+    data, new_cursor, has_more = query.fetch_page(per_page, start_cursor=cursor, projection=[Book.isbn])
 
     if new_cursor is not None:
         new_cursor = new_cursor.urlsafe().decode('utf-8')
-    return [{**i.to_dict(), **{'id':i.key.id()}} for i in data], new_cursor, has_more
+
+    return [i.get_dict() for i in data], new_cursor, has_more
+
+
+@with_client_context
+def borrow_data(per_page=10, offset=0):
+    query = Book.query().filter(Book.taken_by != None)
+    books = query.fetch(per_page, offset=offset)
+
+    offset += len(books)
+    has_more = True
+    if query.count() <= offset:
+        offset = None
+        has_more = False
+    
+    return [i.get_dict() for i in books], offset, has_more
 
 
 @with_client_context
 def borrow_book(book_id, member_id):
-    book = Book.get_by_id(book_id)
-    if book is None:
-        raise BookNotFound()
 
     member = Member.get_by_id(member_id)
     if member is None:
         raise MemberNotFound()
 
-    already_borrowed = Borrow.query().filter(
-        Borrow.book_id == book_id,
-        Borrow.member_id == member_id,
-        Borrow.returned == False
-    )
-    if already_borrowed.count() != 0:
+    book = Book.get_by_id(book_id)
+    if book is None:
+        raise BookNotFound()
+    if book.taken_by is not None:
         raise BookAlreadyTaken()
 
-    borrow = Borrow(book_id=book_id, member_id=member_id, returned=False)
-    borrow.put()
+    book.taken_by = member.key
+    book.put()
+
 
 
 @with_client_context
 def return_book(book_id, member_id):
-    borrowed_data = Borrow.query().filter(
-        Borrow.book_id == book_id,
-        Borrow.member_id == member_id,
-        Borrow.returned == False
-    )
-    if borrowed_data.count() == 0:
+    member = Member.get_by_id(member_id)
+    if member is None:
+        raise MemberNotFound()
+
+    book = Book.get_by_id(book_id)
+    if book is None:
+        raise BookNotFound()
+
+    if book.taken_by is  None:
         raise BookNotBorrowed()
 
-    borrowed_data = borrowed_data.get(0)
-    borrowed_data.returned = True
-    borrowed_data.put()
+    book.taken_by = None
+    book.put()
 
+
+# @with_client_context
+# def temp():
+#     query = Book.query()
+#     from sys import getsizeof
+#     print(dir(query))
+#     print(getsizeof(query))
+#     total = 0
+#     for i in query:
+#         total += getsizeof(i)
+#     print(total)
+
+# temp()
