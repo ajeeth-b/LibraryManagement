@@ -3,43 +3,12 @@
 <head>
 	<title>Library</title>
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
-    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pagination.css') }}">
 </head>
 <body>
-	<style type="text/css">
-		.pagination {
-		  display: inline-block;
-		}
 
-		.pagination a {
-		  color: black;
-		  float: left;
-		  padding: 4px 8px;
-		  text-decoration: none;
-		  border: 1px solid #ddd;
-		}
 
-		.pagination a.active {
-		  background-color: #4CAF50;
-		  color: white;
-		  border: 1px solid #4CAF50;
-		}
-
-		.pagination a:hover:not(.active) {background-color: #ddd;}
-
-		.pagination a:first-child {
-		  border-top-left-radius: 5px;
-		  border-bottom-left-radius: 5px;
-		}
-
-		.pagination a:last-child {
-		  border-top-right-radius: 5px;
-		  border-bottom-right-radius: 5px;
-		}
-	</style>
-
+	
 	<p>Hello {{g.user['name']}}</p>	
 	<p> Your member ID is {{g.user['member_id']}}</p>
 	<script type="text/javascript"> 
@@ -53,9 +22,6 @@
 				<th scope="col"> Author</th>
 				<th scope="col"> ISBN</th>
 			</tr>
-			<!-- <tr>
-				<td>aj</td>
-			</tr> -->
   		</thead>
   	</table>
   	<div class="pagination" id='pagination'>
