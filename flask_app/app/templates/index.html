@@ -2,38 +2,62 @@
 <html>
 <head>
 	<title>Library</title>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pagination.css') }}">
 </head>
 <body>
+
+
+	
 	<p>Hello {{g.user['name']}}</p>	
 	<p> Your member ID is {{g.user['member_id']}}</p>
+	<script type="text/javascript"> 
+		var member_id = {{g.user['member_id']}}
+	</script>
 
-	<table>
-		<tr>
-			<th> Name</th>
-			<th> Author</th>
-			<th> ISBN</th>
-		</tr>
-		{% for data in book_data %}
-		<tr>
-			<td>{{data['name']}}</td>
-			<td>{{data['author']}}</td>
-			<td>{{data['isbn']}}</td>
-			<td><a href="#" onclick='return_book( {{data["isbn"]}} )'>return</a></td>
-		</tr>
-		{% endfor %}
-	</table>
+	<table style="width: 40%; margin-left: 2%;" id="data-table"  class="table table-striped">
+		<thead  class="thead-light">
+    		<tr>
+				<th scope="col"> Name</th>
+				<th scope="col"> Author</th>
+				<th scope="col"> ISBN</th>
+			</tr>
+  		</thead>
+  	</table>
+  	<div class="pagination" id='pagination'>
+	  
+	</div>
+	<p id="message"></p>
 
-	<form method='post' action='/return-book' id='return_book_form' style="display: none;">
+	<script type = "text/javascript" 
+			src = "{{ url_for('static', filename = 'js/index.js') }}" >		
+	</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+	<!-- <form method='post' action='/return-book' id='return_book_form' style="display: none;">
 		<input type="number" name="book_id" id="book_id">
-	</form>
+	</form> -->
 
-	<script type="text/javascript">
+	<!-- <script type="text/javascript">
 		function return_book(book_id){
 			inp = document.getElementById('book_id');
 			inp.value = book_id;
 			document.getElementById('return_book_form').submit()
 		}
-	</script>
+	</script> -->
+	<br><br>
+	<p><a href="/borrow-book">Click here</a> to take books.</p>
 	
 </body>
 </html>
