@@ -27,8 +27,8 @@ class BookNotBorrowed(Exception):
 
 @with_client_context
 def create_book(name, author, isbn):
-    book = Book.query().filter(Book.isbn == isbn)
-    if book.count() != 0:
+    book = Book.query().filter(Book.isbn == isbn).get(0)
+    if book is not None:
         raise DuplicateBook()
     book = Book(name=name, author=author, isbn=isbn)
     book.put()

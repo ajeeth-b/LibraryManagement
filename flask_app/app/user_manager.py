@@ -1,6 +1,5 @@
 from .models import User, Member
 from .utils import with_client_context
-from uuid import uuid4
 from werkzeug.security import generate_password_hash
 
 
