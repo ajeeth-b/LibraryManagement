@@ -1,18 +1,13 @@
 from flask import Blueprint, g, redirect, render_template, request
 from .authentication import login_required
-from .library_manager import get_book_borrowed_by_member, query_book, BookNotFound, MemberNotFound, return_book, BookNotBorrowed, get_all_books, borrow_book
+from .library_manager import query_book, BookNotFound, MemberNotFound, return_book, BookNotBorrowed, get_all_books, borrow_book
 
 user_blueprint = Blueprint('user', __name__)
 
 @user_blueprint.route('/')
 @login_required
 def index():
-	try:
-		book_data = get_book_borrowed_by_member(g.user['member_id'])
-	except MemberNotFound:
-		return redirect('/login')
-
-	return render_template('index.html', book_data=book_data)
+	return render_template('index.html')
 
 
 
@@ -37,11 +32,7 @@ def user_returns_book():
 
 @user_blueprint.route('/borrow-book', methods=['GET'])
 def get_available_book_list():
-
-	book_data, cursor, has_next = get_all_books(available=True)
-
-
-	return render_template('books.html', books=book_data)
+	return render_template('books.html')
 
 
 @user_blueprint.route('/borrow-book', methods=['POST'])

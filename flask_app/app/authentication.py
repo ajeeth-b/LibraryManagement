@@ -70,3 +70,9 @@ def signup():
 	session['session'] = user
 
 	return redirect('/')
+
+
+@auth.route('/logout')
+def logout():
+	del session['session']
+	return redirect('/')

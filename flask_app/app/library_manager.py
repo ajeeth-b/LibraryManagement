@@ -49,11 +49,13 @@ def get_all_books(available=False, per_page=10, offset=0):
     if available:
         query = query.filter(Book.taken_by == None)
 
-    books = query.fetch(per_page, offset=offset)
+    books = query.fetch(per_page+1, offset=offset)
 
     offset += len(books)
     has_more = True
-    if query.count() <= offset:
+    if len(books) == per_page+1:
+        books = books[:-1]
+    else:
         offset, has_more = None, False
 
     books = [book.get_dict() for book in books]
@@ -106,11 +108,13 @@ def query_member(member_id):
 @with_client_context
 def get_all_members(per_page=10, offset=0):
     query = Member.query()
-    members = query.fetch(per_page, offset=offset)
+    members = query.fetch(per_page+1, offset=offset)
 
     offset += len(members)
     has_more = True
-    if query.count() <= offset:
+    if len(members) == per_page+1:
+        members = members[:-1]
+    else:
         offset, has_more = None, False
 
     members = [member.get_dict() for member in members]
@@ -136,14 +140,25 @@ def delete_member(member_id):
 
 
 @with_client_context
-def get_book_borrowed_by_member(member_id):
+def get_book_borrowed_by_member(member_id, per_page=10, offset=0):
     member = Member.get_by_id(member_id)
     if member is None:
         raise MemberNotFound()
     
-    books = Book.query().filter(Book.taken_by == member.key)
+    query = Book.query().filter(Book.taken_by == member.key)
+
+    books = query.fetch(per_page+1, offset=offset)
+
+    offset += len(books)
+    has_more = True
+    if len(books) == per_page+1:
+        books = books[:-1]
+    else:
+        offset, has_more = None, False
+
     books = [book.get_dict() for book in books]
-    return books
+    return books, offset, has_more
+
 
 
 # Library Operations
@@ -155,7 +170,10 @@ def borrow_data(per_page=10, offset=0):
 
     offset += len(books)
     has_more = True
-    if query.count() <= offset:
+
+    if len(books) == per_page+1:
+        books = books[:-1]
+    else:
         offset, has_more = None, False
 
     books = [{'book_id':book.key.id(), 'member_id':book.taken_by.id()} for book in books]
