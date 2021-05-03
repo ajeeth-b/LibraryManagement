@@ -1,0 +1,16 @@
+indexes:
+
+
+- kind: Book
+  properties:
+  - name: taken_by
+  - name: author
+  - name: isbn
+  - name: name 
+
+
+- kind: User
+  properties:
+  - name: name
+  - name: password
+  - name: member_id

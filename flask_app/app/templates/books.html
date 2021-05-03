@@ -6,11 +6,10 @@
 	<link rel="stylesheet" href="{{ url_for('static', filename='css/pagination.css') }}">
 </head>
 <body>
-
 	<p>Hello {{g.user['name']}}</p>	
 	<p> Your member ID is {{g.user['member_id']}}</p>
-	<script type="text/javascript"> 
-		var member_id = {{g.user['member_id']}}
+	<script type="text/javascript">
+		var member_id = {{g.user['member_id']}};
 	</script>
 
 	<table style="width: 40%; margin-left: 2%;" id="data-table"  class="table table-striped">
@@ -27,11 +26,163 @@
 	</div>
 	<p id="message"></p>
 
-  <script type = "text/javascript" 
-			src = "{{ url_for('static', filename = 'js/books.js') }}" >		
-	</script>
+	<p><a href="/">Click here</a> to view borrowed books.</p>
 
-	<p><a href="/">Click here</a> to see books you borrowed.</p>
+	<script type="text/javascript">
+		var cursor = null;
+		var table_data = [];
+		var data_ids = [];
+		var more = true;
+		var cursor = null;
+		var page_no = 1;
+		var rows_per_page = 2;
+		var table = document.getElementById('data-table');
+
+
+		function update_table(start, end){
+			while(table.rows.length > 1){
+				table.deleteRow(1);
+			}
+
+			for(;start <= end; start++){
+				data = table_data[start];
+				if (data != undefined){
+					row = table.insertRow(-1);
+					row.insertCell(0).innerHTML = data.name;
+					row.insertCell(1).innerHTML = data.author;
+					row.insertCell(2).innerHTML = data.isbn;
+					row.insertCell(3).innerHTML =  "<a href='#' onclick=borrow_book("+data.id+ "," +start +")>Take</a>"
+				}
+			}
+		}
+
+		function update_pagination(){
+			paginate_count = Math.ceil(table_data.length/rows_per_page);
+			paginate = document.getElementById('pagination');
+			html_content = ''
+			for(i = 1; i<=paginate_count; i++){
+				html_content += "<a href='#' onclick='on_page_change("+i+")'>"+i+"</a>"
+			}
+			if (more == true){
+				html_content += "<a href='#' onclick='on_page_change("+i+")'>next</a>"
+			}
+			paginate.innerHTML = html_content;
+		}
+
+		function update_ui(from_callback=false){
+			start = (page_no-1)*rows_per_page;
+			end = page_no*rows_per_page-1;
+			if (((start+1) > table_data.length || (end+1) > table_data.length) && more){
+				if (from_callback == false){
+					get_data(true);
+				}
+				return;
+			}
+			if ((start+1) > table_data.length && more == false){
+				page_no -= 1;
+				update_pagination();
+				return;
+			}
+			update_table(start, end);
+			update_pagination();
+		}
+
+		function on_page_change(new_page_no){
+			page_no = new_page_no;
+			update_ui();
+		}	
+
+		function update_local(data){
+			data.books.forEach((book) => {
+				if (!(book.id in data_ids)){
+					data_ids.push(book.id);
+					table_data.push(book);
+				}
+			});
+			more = data.more;
+			cursor = data.next_cursor;
+		}
+
+		function get_data(from_callback=false){
+			url = 'api/library/books?available=true&cursor='+cursor+'&per-page='+rows_per_page;
+
+			var xhr = new XMLHttpRequest();
+			xhr.onreadystatechange = function(){
+				if (this.readyState == 4){
+					if (this.status == 200){
+						resp = JSON.parse(xhr.responseText);
+						if (resp.status == 'success'){
+							update_local(resp);
+							update_ui(from_callback);
+						}else {
+							console.log(resp);
+						}
+					}else{
+						console.log('Error', this.status);
+					}
+				}
+			}
+
+			xhr.open("GET", url);
+			xhr.send();
+		}
+
+		function on_page_loading(from_callback=false){
+			url = 'api/library/books?available=true&per-page='+rows_per_page;
+
+			var xhr = new XMLHttpRequest();
+			xhr.onreadystatechange = function(){
+				if (this.readyState == 4){
+					if (this.status == 200){
+						resp = JSON.parse(xhr.responseText);
+						if (resp.status == 'success'){
+							update_local(resp);
+							update_ui(from_callback);
+						}else {
+							console.log(resp);
+						}
+					}else{
+						console.log('Error', this.status);
+						if (from_callback == true){
+							console.log('retrying once');
+							on_page_loading(true);
+						}
+					}
+				}
+			}
+
+			xhr.open("GET", url);
+			xhr.send();
+		}
+
+		on_page_loading();
+
+		function borrow_book(book_id, data_id){
+			url = '/api/library';
+
+			var xhr = new XMLHttpRequest();
+			xhr.onreadystatechange = function(){
+				if (this.readyState == 4){
+					if (this.status == 200){
+						return_book_handler(JSON.parse(xhr.responseText), data_id);
+					}else{
+						console.log('Error', this.status)
+					}
+				}
+			}
+
+			xhr.open("POST", url);
+			xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+			xhr.send(JSON.stringify({ "book_id":book_id, "member_id":member_id }));
+		}
+
+		function return_book_handler(response_data, data_id){
+			document.getElementById('message').innerHTML = response_data.message;
+			table_data.splice(data_id, data_id+1);
+			data_ids.splice(data_id, data_id+1)
+			update_ui();
+		}
+	</script>
 	
 </body>
 </html>

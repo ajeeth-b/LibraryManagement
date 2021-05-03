@@ -5,6 +5,7 @@ class Book(ndb.Model):
 	isbn = ndb.IntegerProperty()
 	name = ndb.StringProperty()
 	author = ndb.StringProperty()
+	taken = ndb.BooleanProperty(default=False)
 	taken_by = ndb.KeyProperty()
 
 	def get_dict(self):
