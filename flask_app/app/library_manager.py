@@ -1,8 +1,10 @@
 from .models import Book, Member, User
 from .utils import with_client_context
 from google.cloud.ndb import Key, Cursor
+from google.cloud.ndb.exceptions import BadValueError
 import binascii
 from google.api_core.exceptions import InvalidArgument
+
 
 
 class BookNotFound(Exception):
@@ -35,6 +37,8 @@ def create_book(name, author, isbn):
     book = Book.query().filter(Book.isbn == isbn)
     if book.count() != 0:
         raise DuplicateBook()
+    if type(isbn) != int:
+        raise BadValueError()
     book = Book(name=name, author=author, isbn=isbn)
     book.put()
     return book.get_dict()

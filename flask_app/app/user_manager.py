@@ -3,11 +3,17 @@ from .utils import with_client_context
 from uuid import uuid4
 from werkzeug.security import generate_password_hash
 
+class UserAlreadyExists(Exception):
+	pass
+
+class UserNotFound(Exception):
+	pass
+
 
 @with_client_context
 def create_user(email, name, password):
 	if User.get_by_id(email):
-		return False
+		raise UserAlreadyExists()
 
 	member = Member(name=name)
 	member.put()
@@ -20,13 +26,18 @@ def create_user(email, name, password):
 
 @with_client_context
 def get_user(email):
-	return User.get_by_id(email)
+	user = User.get_by_id(email)
+	if user is None:
+		raise UserNotFound()
+	return user.get_dict()
 
 
 @with_client_context
 def delete_user(email):
 	user = User.get_by_id(email)
-	if user:
-		user.key.delete()
-		return True
-	return False
+	if user is None:
+		raise UserNotFound()
+	member = Member.get_by_id(user.member_id.id())
+	user.key.delete()
+	if member:
+		member.key.delete()

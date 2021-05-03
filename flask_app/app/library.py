@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 from .library_manager import *
-from google.cloud.ndb.exceptions import BadValueError
+
 
 library = Blueprint('library', __name__, url_prefix='/api')
 

@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, session, request, redirect, current_app as app, g
-from .user_manager import create_user, get_user
+from .user_manager import create_user, get_user, UserAlreadyExists, UserNotFound
 from werkzeug.security import check_password_hash
 
 
@@ -33,10 +33,10 @@ def login_user():
 	if email is None or password is None:
 		return render_template('login.html', message='Email and Password are required')
 
-	user = get_user(email)
-	if user is None:
+	try:
+		user = get_user(email)
+	except UserNotFound:
 		return render_template('login.html', message='No such user.')
-	user = user.get_dict()
 
 	if not check_password_hash(user['password'],password):
 		return render_template('login.html', message='Incorrect Password.')
@@ -60,11 +60,10 @@ def signup():
 	if email is None or password is None or name is None:
 		return render_template('signup.html', message='Email, Name and Password are required*')
 
-	user = get_user(email)
-	if user:
+	try:
+		user = create_user(email, name, password)
+	except UserAlreadyExists:
 		return render_template('signup.html', message='Email already exists.')
-
-	user = create_user(email, name, password)
 
 	del user['password']
 	session['session'] = user
