@@ -1,5 +1,6 @@
 from .models import User, Member
 from .utils import with_client_context
+from uuid import uuid4
 from werkzeug.security import generate_password_hash
 
 
@@ -20,13 +21,6 @@ def create_user(email, name, password):
 @with_client_context
 def get_user(email):
 	return User.get_by_id(email)
-
-
-def get_user_as_dict(email):
-	user = get_user(email)
-	if user is None:
-		return None
-	return user.get_dict()
 
 
 @with_client_context
