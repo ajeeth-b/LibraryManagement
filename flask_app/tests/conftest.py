@@ -3,11 +3,10 @@ from config import TestConfig
 import pytest
 
 
-
 @pytest.fixture
 def app():
-	client = create_app(TestConfig()).test_client()
-	return client
+    client = create_app(TestConfig()).test_client()
+    return client
 
 # @pytest.fixture(autouse=True)
 # def ndb_client():

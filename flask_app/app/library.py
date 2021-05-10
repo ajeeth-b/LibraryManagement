@@ -1,7 +1,6 @@
 from flask import Blueprint, jsonify, request
 from .library_manager import *
 
-
 library = Blueprint('library', __name__, url_prefix='/api')
 
 
@@ -27,13 +26,13 @@ def get_all_books_handler():
 
     try:
         books, next_cursor, more = get_all_books(
-            available=available, 
+            available=available,
             cursor=cursor,
             per_page=per_page
-            )
+        )
     except InvalidCursor:
-        return jsonify({'status':'failed', 'message':'Invalid Cursor'})
-    data = {'status': 'success', 'books':books, 'next_cursor':next_cursor, 'prev_cursor':cursor, 'more':more}
+        return jsonify({'status': 'failed', 'message': 'Invalid Cursor'})
+    data = {'status': 'success', 'books': books, 'next_cursor': next_cursor, 'prev_cursor': cursor, 'more': more}
     return jsonify(data)
 
 
@@ -115,11 +114,10 @@ def get_all_members_handler():
         members, next_cursor, more = get_all_members(
             cursor=cursor,
             per_page=per_page
-            )
+        )
     except InvalidCursor:
-        return jsonify({'status':'failed', 'message':'Invalid Cursor'})
-    data = {'status': 'success', 'members':members, 'next_cursor':next_cursor, 'prev_cursor':cursor, "more":more}
-
+        return jsonify({'status': 'failed', 'message': 'Invalid Cursor'})
+    data = {'status': 'success', 'members': members, 'next_cursor': next_cursor, 'prev_cursor': cursor, "more": more}
 
     return jsonify(data)
 
@@ -159,8 +157,8 @@ def update_member_handler(member_id):
 
     try:
         member = update_member(member_id,
-            name=data.get('name'),
-        )
+                               name=data.get('name'),
+                               )
     except MemberNotFound:
         return jsonify({'status': 'failed', 'message': 'Member Not Found'})
     except BadValueError:
@@ -181,10 +179,10 @@ def delete_member_handler(member_id):
 
     return jsonify({'status': 'success', 'message': 'Member deleted successfully.'})
 
+
 @library.route('/library/members/<int:member_id>/books', methods=['GET'])
 @library.route('/library/members/<string:member_id>/books', methods=['GET'])
 def books_borrowed_by_member(member_id):
-
     cursor = request.args.get('cursor', None)
     per_page = request.args.get('per-page', '10')
 
@@ -198,13 +196,14 @@ def books_borrowed_by_member(member_id):
             member_id,
             per_page=per_page,
             cursor=cursor,
-            )
+        )
     except MemberNotFound:
         return jsonify({'status': 'failed', 'message': 'Member Not Found'})
     except InvalidCursor:
-        return jsonify({'status':'failed', 'message':'Invalid Cursor'})
+        return jsonify({'status': 'failed', 'message': 'Invalid Cursor'})
 
-    return jsonify({'status': 'success', 'books': books, 'next_cursor':next_cursor, 'prev_cursor':cursor, 'more':more})
+    return jsonify(
+        {'status': 'success', 'books': books, 'next_cursor': next_cursor, 'prev_cursor': cursor, 'more': more})
 
 
 # Library Actions
@@ -221,13 +220,13 @@ def get_borrowed_data_handler():
 
     try:
         data, next_cursor, more = get_borrow_data(
-            per_page=per_page, 
+            per_page=per_page,
             cursor=cursor,
-            )
+        )
     except InvalidCursor:
-        return jsonify({'status':'failed', 'message':'Invalid Cursor'})
+        return jsonify({'status': 'failed', 'message': 'Invalid Cursor'})
 
-    resp_data = {'status': 'success', 'data': data, 'prev_cursor':cursor, 'next_cursor':next_cursor, 'more':more}
+    resp_data = {'status': 'success', 'data': data, 'prev_cursor': cursor, 'next_cursor': next_cursor, 'more': more}
     return jsonify(resp_data)
 
 

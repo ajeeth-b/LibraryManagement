@@ -3,8 +3,10 @@ from .utils import with_client_context
 from werkzeug.security import generate_password_hash
 from google.cloud.ndb.exceptions import BadValueError
 
+
 class UserAlreadyExists(Exception):
 	pass
+
 
 class UserNotFound(Exception):
 	pass

@@ -1,5 +1,5 @@
 import pytest
-from jinja2.exceptions import UndefinedError
+
 
 def test_index(app):
 	assert app.get('/').status_code == 302
