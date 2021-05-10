@@ -1,7 +1,7 @@
 from .models import User, Member
 from .utils import with_client_context
-from uuid import uuid4
 from werkzeug.security import generate_password_hash
+from google.cloud.ndb.exceptions import BadValueError
 
 class UserAlreadyExists(Exception):
 	pass
@@ -12,6 +12,8 @@ class UserNotFound(Exception):
 
 @with_client_context
 def create_user(email, name, password):
+	if type(email) != str or type(name) != str or type(password) != str:
+		raise BadValueError()
 	if User.get_by_id(email):
 		raise UserAlreadyExists()
 

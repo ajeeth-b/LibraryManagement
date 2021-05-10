@@ -1,7 +1,8 @@
 from app import create_app
-from config import DebugConfig
+from config import DevelopmentConfig
 
 
 if __name__ == '__main__':
-	app = create_app(DebugConfig())
-	app.run()
+	app = create_app(DevelopmentConfig())
+	# app.run()
+	print(dir(app))

@@ -1,182 +1,299 @@
 import pytest
-from config import TestConfig
+import mock
 from app.library_manager import *
-from random import randint
+from app.models import Book, Member
+from google.cloud.ndb.query import Query
 
 
+def test_create_book(mocker):
 
-def get_random_name(size=7):
-	chars = map(chr, [randint(97, 122) for i in range(size)])
-	return ''.join(chars)
-
-
-@pytest.mark.library_manager
-@pytest.mark.book_methods
-class TestBookMethods():
-
-	def test_create_invalid_book(self):
-		''' creating invalid book '''
-		with pytest.raises(BadValueError):
-			create_book(1, 1, 1000)
-
-	def test_create_book_and_check(self):
-		''' creating valid book, getting it, updating it, deleting it '''
-		try:
-			book = create_book(get_random_name(), get_random_name(), randint(10, 10000))
-			assert type(book) == dict
-			assert type(get_book(book['id'])) == dict
-
-			new_name = get_random_name()
-			assert type(update_book(book['id'], new_name)) == dict
-			assert get_book(book['id'])['name'] == new_name
-
-
-			assert delete_book(book['id']) is None
-			''' deleting again '''
-			with pytest.raises(BookNotFound):
-				delete_book(book['id'])
-
-		except DuplicateBook:
-			assert True
-
-	def test_get_invalid_book(self):
-		''' getting book not in db'''
-		with pytest.raises(BookNotFound):
-			get_book('a')
-
-	def test_get_all_book(self):
-		books, cursor, more = get_all_books()
-		assert type(books) == list
-		assert type(cursor) == str
-		assert type(more) == bool
-
-		for i in books:
-			assert type(i) == dict
-
-	def test_get_all_book_pagination(self):
-		books, cursor, more = get_all_books(per_page=1)
-		if more is True:
-			books, cursor, more = get_all_books(per_page=1, cursor=cursor)
-			''' assert True for successfull retriving of data '''
-			assert True
-			# assert len(books) > 1
-
-	def test_get_all_book_invalid_cursor(self):
-		with pytest.raises(InvalidCursor):
-			books, cursor, more = get_all_books(cursor='abcde')
-
-
-
-@pytest.mark.library_manager
-@pytest.mark.member_methods
-class TestMemberMethods():
-
-	def test_create_invalid_member(self):
-		
-		''' creating with bad value '''
-		with pytest.raises(BadValueError):
-			create_member(1)
-
-	def test_create_member_and_check(self):
-		''' creating a valid member '''
-		member_name = get_random_name()
-		member  = create_member(member_name)
-		''' asserting on successfull member creating'''
-		assert type(member) == dict
-		assert 'id' in member
-
-		''' getting created member'''
-		assert get_member(member['id'])['name'] == member_name
-
-
-		''' deleting create member'''
-		assert delete_member(member['id']) is None
-
-		''' deleting again'''
-		with pytest.raises(MemberNotFound):
-			delete_member(member['id'])
-
-	def test_geting_invalid_member(self):
-		''' getting member not in db '''
-		with pytest.raises(MemberNotFound):
-			get_member('invalid_id')
-
-	def test_get_all_member(self):
-		members, cursor, more = get_all_books()
-		assert type(members) == list
-		assert type(cursor) == str
-		assert type(more) == bool
-
-		for i in members:
-			assert type(i) == dict
-
-	def test_get_all_member_pagination(self):
-		members, cursor, more = get_all_members(per_page=1)
-		if more is True:
-			member, cursor, more = get_all_members(per_page=1, cursor=cursor)
-			''' assert True for successfull retriving of data '''
-			assert True
-			# assert len(members) > 1
-
-	def test_get_all_member_invalid_cursor(self):
-		with pytest.raises(InvalidCursor):
-			members, cursor, more = get_all_members(cursor='abcde')
-
-
-@pytest.mark.library_manager
-@pytest.mark.library_methods
-class TestLibraryMethods():
-
-	def test_get_borrow_data(self):
-		data, cursor, more = get_borrow_data(per_page=1)
-		''' asserting on successfull query'''
+	# testing for creating valid book
+	mocker_query_count = mocker.patch('google.cloud.ndb.query.Query.count', return_value=0)
+	mocker_model_put = mocker.patch('google.cloud.ndb.Model.put')
+	mocker_book_get_dict = mocker.patch('app.models.Book.get_dict', return_value = {'name':'name', "author":'author', "isbn":1})
+	try:
+		create_book('name', 'author', 1)
 		assert True
-		for d in data:
-			assert 'book_id' in d
-			assert 'member_id' in d
+	except:
+		pytest.fail('Error in creating a valid book')
 
 
-	def test_get_borrow_data_pagination(self):
-		data, cursor, more = get_borrow_data(per_page=1)
-		if more is True:
-			data, cursor, more = get_borrow_data(per_page=1, cursor=cursor)
-			''' asserting on successfull query'''
-			assert True
+	# Testing by creating duplicate book
+	mocker_query_count = mocker.patch('google.cloud.ndb.query.Query.count', return_value=1)	
+	with pytest.raises(DuplicateBook):
+		create_book('name', 'author', 1)
 
-	def test_get_borrow_data_invalid_cursor(self):
-		with pytest.raises(InvalidCursor):
-			data, cursor, more = get_borrow_data(per_page=1, cursor='abcde')
+	# Testing by giving bad value
+	mocker_query_count = mocker.patch('google.cloud.ndb.query.Query.count', return_value=0)	
+	with pytest.raises(BadValueError):
+		create_book('name', 'author', 'a')
+	with pytest.raises(BadValueError):
+		create_book(1, 'author', 1)
+	with pytest.raises(BadValueError):
+		create_book('name', 100, 1)
 
-	def test_borrow_book_with_invalid_member(self):
-		member  = create_member(get_random_name())
-		with pytest.raises(MemberNotFound):
-			borrow_book('invalid_book_id', member['id'])
-		delete_member(member['id'])
 
-	def test_borrow_book_with_invalid_member(self):
-		book = create_book(get_random_name(), get_random_name(), randint(10, 10000))
-		with pytest.raises(MemberNotFound):
-			borrow_book(book['id'], 'invalid_member_id')
-		delete_book(book['id'])
 
-	def test_borrow_and_return_book(self):
-		book = create_book(get_random_name(), get_random_name(), randint(10, 10000))
-		member  = create_member(get_random_name())
+def test_get_book(mocker):
 
-		assert borrow_book(book['id'], member['id']) is None
+	mocker_book_get_dict = mocker.patch('app.models.Book.get_dict', return_value={'name':'name', "author":'author', "isbn":1})
 
-		''' verifying the borrow'''
-		book = get_book(book['id'])
-		assert book['taken'] == True
-		assert book['taken_by'] == member['id']
+	# Testing for getting a valid book
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id', return_value=Book())
+	try:
+		get_book(1)
+	except Exception as e:
+		pytest.fail('Error in getting a valid book'+str(e))
+	mocker_model_get_by_id.assert_called_once()
 
-		assert return_book(book['id'], member['id']) is None
 
-		''' verifying the returining'''
-		book = get_book(book['id'])
-		assert book['taken'] == False
-		assert book['taken_by'] == None
+	# Testing geting book that is not found
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id', return_value=None)
+	with pytest.raises(BookNotFound):
+		get_book(1)
 
-		''' deleting the data'''
-		delete_book(book['id'])
-		delete_member(member['id'])
+
+
+def test_get_all_books(mocker):
+
+	# Testing the proper execution without any error
+	mocker_book_get_dict = mocker.patch('app.models.Book.get_dict', return_value={'name':'name', "author":'author', "isbn":1})
+	mocker_query_fetch_page = mocker.patch('google.cloud.ndb.query.Query.fetch_page', return_value = ([], None, False))
+	try:
+		get_all_books()
+		assert True
+	except Exception as e:
+		pytest.fail('Error on making a proper call of the function'+str(e))
+	mocker_query_fetch_page.assert_called_once()
+
+	# Testing with Invalid cursor
+	with pytest.raises(InvalidCursor):
+		get_all_books(cursor='invalidcursor')
+
+	
+	# Testing to get available book -> "avaiable = True" parameter	
+	mocker_query_filter = mocker.patch('google.cloud.ndb.query.Query.filter', return_value=Query())
+	get_all_books(available=True)
+	assert mocker_query_filter.call_count !=  0
+
+
+
+def test_update_book(mocker):
+	mocker_model_put = mocker.patch('google.cloud.ndb.Model.put')
+
+	# Testing for Invalid Book
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id', return_value=None)
+	with pytest.raises(BookNotFound):
+		update_book(1)
+
+	# Testing for bad values
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id', return_value=Book())
+	with pytest.raises(BadValueError):
+		update_book(1, name=1)
+
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id', return_value=Book())
+	with pytest.raises(BadValueError):
+		update_book(1, author=123)
+
+	# Testing for proper updation
+	mocker_book_get_dict = mocker.patch('app.models.Book.get_dict', return_value={'name':'name', "author":'author', "isbn":1})
+	try:
+		update_book(1, name='name', author='author')
+	except Exception as e:
+		pytest.fail('Error in proper updation of book '+str(e))
+
+
+def test_delete_book(mocker):
+	mocker_ndb_key_get = mocker.patch('google.cloud.ndb.Key.get', return_value=None)
+	with pytest.raises(BookNotFound):
+		delete_book(1)
+
+
+'''Testing Member methods'''
+
+def test_create_member(mocker):
+
+	# Testing creation of member
+	mocker_model_put = mocker.patch('google.cloud.ndb.Model.put')
+	mocker_member_get_dict = mocker.patch('app.models.Member.get_dict', return_value = {'name':'name', 'id':1})
+	try:
+		create_member(name='Ajeeth')
+		mocker_model_put.assert_called_once()
+		mocker_member_get_dict.assert_called_once()
+	except Exception as e:
+		pytest.fail('Error in proper creation of member '+str(e))
+
+	# Testig with bad value
+	with pytest.raises(BadValueError):
+		create_member(name=1)
+
+
+def test_get_member(mocker):
+	mocker_member_get_dict = mocker.patch('app.models.Member.get_dict', return_value={'name':'name'})
+
+	# Testing for getting a valid member
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id', return_value=Member())
+	try:
+		get_member(1)
+	except Exception as e:
+		pytest.fail('Error in getting a valid member'+str(e))
+	mocker_model_get_by_id.assert_called_once()
+
+
+	# Testing geting member that is not found
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id', return_value=None)
+	with pytest.raises(MemberNotFound):
+		get_member(1)
+
+
+
+def test_get_all_members(mocker):
+
+	# Testing the proper execution without any error
+	mocker_member_get_dict = mocker.patch('app.models.Member.get_dict', return_value={'name':'name', "author":'author', "isbn":1})
+	mocker_query_fetch_page = mocker.patch('google.cloud.ndb.query.Query.fetch_page', return_value = ([], None, False))
+	try:
+		get_all_members()
+		assert True
+	except Exception as e:
+		pytest.fail('Error on making a proper call of the function'+str(e))
+	mocker_query_fetch_page.assert_called_once()
+
+	# Testing with Invalid cursor
+	with pytest.raises(InvalidCursor):
+		get_all_members(cursor='invalidcursor')
+
+
+def test_update_member(mocker):
+
+	mocker_model_put = mocker.patch('google.cloud.ndb.Model.put')
+
+	# Testing for Invalid Member
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id', return_value=None)
+	with pytest.raises(MemberNotFound):
+		update_member(1)
+
+	# Testing for bad values
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id', return_value=Member())
+	with pytest.raises(BadValueError):
+		update_member(1, name=1)
+
+	# Testing for proper updation
+	mocker_member_get_dict = mocker.patch('app.models.Member.get_dict', return_value={'name':'name', "author":'author', "isbn":1})
+	try:
+		update_member(1, name='name')
+	except Exception as e:
+		pytest.fail('Error in proper updation of member '+str(e))
+
+
+
+def test_delete_member(mocker):
+	mocker_ndb_key_get = mocker.patch('google.cloud.ndb.Key.get', return_value=None)
+	with pytest.raises(MemberNotFound):
+		delete_member(1)
+
+
+def test_get_book_borrowed_by_member(mocker):
+
+	# Testing for invalid member
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id', return_value=None)
+	with pytest.raises(MemberNotFound):
+		get_book_borrowed_by_member(1)
+
+	# Testing Invalid cursor
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id', return_value=Member())
+	mocker_query_filter = mocker.patch('google.cloud.ndb.query.Query.filter', return_value=Query())
+	with pytest.raises(InvalidCursor):
+		get_book_borrowed_by_member(1, cursor='invalidcursor')
+
+
+	# Testing with proper data
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id', return_value=Member())
+	mocker_query_filter = mocker.patch('google.cloud.ndb.query.Query.filter', return_value=Query())
+	mocker_query_fetch_page = mocker.patch('google.cloud.ndb.query.Query.fetch_page', return_value = ([], None, False))
+	try:
+		get_book_borrowed_by_member(1)
+	except:
+		pytest.fail('Error in proper calling of function'+str(e))
+
+
+
+def test_get_borrow_data(mocker):
+
+	mocker_query_filter = mocker.patch('google.cloud.ndb.query.Query.filter', return_value=Query())
+	mocker_query_fetch_page = mocker.patch('google.cloud.ndb.query.Query.fetch_page', return_value = ([], None, False))
+
+	# Test proper call of function
+	try:
+		get_borrow_data()
+		assert True
+	except Exception as e:
+		pytest.fail('Error in get_borrow_data '+str(e))
+
+	with pytest.raises(InvalidCursor):
+		get_borrow_data(cursor='invalidcursor')
+
+
+
+def test_borrow_book(mocker):
+
+	# Testing with Invalid member
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id')
+	mocker_model_get_by_id.side_effect = [None, None]
+	with pytest.raises(MemberNotFound):
+		borrow_book(1,2)
+
+	# Testing with Invalid Book
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id')
+	mocker_model_get_by_id.side_effect = [Member(), None]
+	with pytest.raises(BookNotFound):
+		borrow_book(1,2)
+
+	# Testing with Already Taken Book
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id')
+	mocker_model_get_by_id.side_effect = [Member(), Book(taken=True)]
+	with pytest.raises(BookAlreadyTaken):
+		borrow_book(1,2)
+
+	# Testing proper calling of function
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id')
+	book = Book(taken=False)
+	mocker_model_get_by_id.side_effect = [Member(), book]
+	mocker_model_put = mocker.patch('google.cloud.ndb.Model.put')
+	borrow_book(1,2)
+	assert book.taken == True
+	mocker_model_put.assert_called_once()
+
+
+
+def test_return_book(mocker):
+
+	# Testing with Invalid member
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id')
+	mocker_model_get_by_id.side_effect = [None, None]
+	with pytest.raises(MemberNotFound):
+		return_book(1,2)
+
+	# Testing with Invalid Book
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id')
+	mocker_model_get_by_id.side_effect = [Member(), None]
+	with pytest.raises(BookNotFound):
+		return_book(1,2)
+
+	# # Testing with return book by member not taken it
+	# mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id')
+	# member = Member()
+	# member.key = Key(Member, 1)
+	# book = Book(taken=True, taken_by=Key(Member, 2))
+	# mocker_model_get_by_id.side_effect = [member, book]
+	# with pytest.raises(BookNotBorrowed):
+	# 	return_book(1,2)
+
+	# # Testing proper calling of function
+	# mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id')
+	# book = Book(taken=False)
+	# mocker_model_get_by_id.side_effect = [Member(), book]
+	# mocker_model_put = mocker.patch('google.cloud.ndb.Model.put')
+	# return_book(1,2)
+	# assert book.taken == True
+	# mocker_model_put.assert_called_once()

@@ -6,7 +6,7 @@ class Config(object):
     SECRET_KEY = 'ThereIsNoSecretInTheWorld'
 
 
-class DebugConfig(Config):
+class DevelopmentConfig(Config):
     DEBUG = True
     environ['DATASTORE_DATASET'] = 'ajeeth-internship-app'
     environ['DATASTORE_EMULATOR_HOST'] = 'localhost:8081'
@@ -17,8 +17,8 @@ class DebugConfig(Config):
 
 class TestConfig(Config):
     TESTING = True
-    environ['DATASTORE_DATASET'] = 'ajeeth-internship-app'
-    environ['DATASTORE_EMULATOR_HOST'] = 'localhost:8081'
-    environ['DATASTORE_EMULATOR_HOST_PATH'] = 'localhost:8081/datastore'
-    environ['DATASTORE_HOST'] = 'http://localhost:8081'
-    environ['DATASTORE_PROJECT_ID'] = 'ajeeth-internship-app'
+    # environ['DATASTORE_DATASET'] = 'ajeeth-internship-app'
+    # environ['DATASTORE_EMULATOR_HOST'] = 'localhost:8081'
+    # environ['DATASTORE_EMULATOR_HOST_PATH'] = 'localhost:8081/datastore'
+    # environ['DATASTORE_HOST'] = 'http://localhost:8081'
+    # environ['DATASTORE_PROJECT_ID'] = 'ajeeth-internship-app'

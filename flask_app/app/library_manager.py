@@ -37,11 +37,12 @@ def create_book(name, author, isbn):
     book = Book.query().filter(Book.isbn == isbn)
     if book.count() != 0:
         raise DuplicateBook()
-    if type(isbn) != int:
+    if type(isbn) != int or type(name) != str or type(author) != str:
         raise BadValueError()
     book = Book(name=name, author=author, isbn=isbn)
     book.put()
     return book.get_dict()
+
 
 @with_client_context
 def get_book(book_id):
@@ -139,8 +140,8 @@ def update_member(member_id, name=None):
 
 @with_client_context
 def delete_member(member_id):
-    member = Member.get_by_id(member_id)
-    if member is None:
+    member = Key(Member, member_id)
+    if member.get() is None:
         raise MemberNotFound()
     member.key.delete()
 
@@ -218,7 +219,7 @@ def return_book(book_id, member_id):
     if book is None:
         raise BookNotFound()
 
-    if book.taken_by != member.key:
+    if book.taken == True and book.taken_by != member.key:
         raise BookNotBorrowed()
 
     book.taken_by = None

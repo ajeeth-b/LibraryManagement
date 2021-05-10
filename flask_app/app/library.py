@@ -144,6 +144,8 @@ def get_member_handler(member_id):
         member = get_member(member_id)
     except MemberNotFound:
         return jsonify({'status': 'failed', 'message': 'Member Not Found'})
+    except BadValueError:
+        return jsonify({'status': 'failed', 'message': 'Bad Value'})
 
     return jsonify({'status': 'success', 'member': member})
 
@@ -152,7 +154,7 @@ def get_member_handler(member_id):
 @library.route('/library/members/<string:member_id>', methods=['PUT'])
 def update_member_handler(member_id):
     data = request.json
-    if 'name' not in data:
+    if not data or 'name' not in data:
         return jsonify({'status': 'failed', 'message': 'no data to change'})
 
     try:

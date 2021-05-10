@@ -1,9 +1,9 @@
-from .db import client
+from .db import ndb_client
 
 
 def with_client_context(func):
     def wrapper(*args, **kwargs):
-        with client.context():
+        with ndb_client.context():
             return func(*args, **kwargs)
 
     return wrapper

@@ -1,36 +1,50 @@
 import pytest
-from config import TestConfig
+import mock
 from app.user_manager import *
-from random import randint
+from app.models import User
+from google.cloud.ndb.exceptions import BadValueError
 
 
 
-def get_random_name(size=7):
-	chars = map(chr, [randint(97, 122) for i in range(size)])
-	return ''.join(chars)
+def test_create_user(mocker):
 
 
-@pytest.mark.user_manager
-class TestUser():
+	mocker_query_count = mocker.patch('google.cloud.ndb.query.Query.count', return_value=0)
+	mocker_model_put = mocker.patch('google.cloud.ndb.Model.put')
+	mocker_user_get_dict = mocker.patch('app.models.User.get_dict', return_value = {'name':'name', "email":'emaiil'})
 
-	def test_create_and_delete_user(self):
-		user_mail = get_random_name()+'@gmail.com'
+	# Testing by creating duplicate user
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id', return_value=User())
+	with pytest.raises(UserAlreadyExists):
+		create_user('email', 'name', 'password')
 
-		user = create_user(user_mail, get_random_name(), get_random_name())
+	# testing for creating valid user
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id', return_value=None)
+	try:
+		create_user('name', 'email', 'password')
+		assert True
+	except Exception as e:
+		pytest.fail('Error in creating a valid user '+str(e))
 
-		assert user['email'] == user_mail
+	# Testing by giving bad value
+	with pytest.raises(BadValueError):
+		create_user('email', 'name', 1)
+	with pytest.raises(BadValueError):
+		create_user('email', 1, 'password')
+	with pytest.raises(BadValueError):
+		create_user(1, 'name', 'password')
 
-		''' verifying a member is created for user'''
-		assert 'member_id' in user
-
-		''' creating another user with same email '''
-		with pytest.raises(UserAlreadyExists):
-			create_user(user_mail, get_random_name(), get_random_name())
 
 
-		''' deleting user'''
-		delete_user(user_mail)
+def test_get_user(mocker):
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id', return_value=None)
+	mocker_user_get_dict = mocker.patch('app.models.User.get_dict', return_value = {'name':'name', "email":'emaiil'})
+	with pytest.raises(UserNotFound):
+		get_user('email@e.com')
 
-		''' deleting the non existing user'''
-		with pytest.raises(UserNotFound):
-			delete_user(user_mail)
+
+def test_delete_user(mocker):
+	mocker_model_get_by_id = mocker.patch('google.cloud.ndb.Model.get_by_id', return_value=None)
+	mocker_user_get_dict = mocker.patch('app.models.User.get_dict', return_value = {'name':'name', "email":'emaiil'})
+	with pytest.raises(UserNotFound):
+		delete_user('email@e.com')

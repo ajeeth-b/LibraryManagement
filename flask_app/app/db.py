@@ -1,4 +1,4 @@
 from google.cloud import ndb
 
 
-client = ndb.Client()
+ndb_client = ndb.Client()
