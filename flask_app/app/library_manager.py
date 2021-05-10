@@ -1,6 +1,7 @@
 from .models import Book, Member, User
 from .utils import with_client_context
 from google.cloud.ndb import Key, Cursor
+from google.cloud.ndb.exceptions import BadValueError
 import binascii
 from google.api_core.exceptions import InvalidArgument
 
@@ -24,6 +25,7 @@ class MemberNotFound(Exception):
 class BookNotBorrowed(Exception):
     pass
 
+
 class InvalidCursor(Exception):
     pass
 
@@ -35,23 +37,26 @@ def create_book(name, author, isbn):
     book = Book.query().filter(Book.isbn == isbn)
     if book.count() != 0:
         raise DuplicateBook()
+    if type(isbn) != int or type(name) != str or type(author) != str:
+        raise BadValueError()
     book = Book(name=name, author=author, isbn=isbn)
     book.put()
     return book.get_dict()
+
 
 @with_client_context
 def get_book(book_id):
     book = Book.get_by_id(book_id)
     if book is None:
         raise BookNotFound()
-    return book.get_dict()  
+    return book.get_dict()
+
 
 @with_client_context
-def get_all_books(available = None, per_page=10, cursor=None):
-
+def get_all_books(available=None, per_page=10, cursor=None):
     query = Book.query()
     if available is not None:
-        available = not(available)
+        available = not available
         query = query.filter(Book.taken == available)
 
     try:
@@ -59,7 +64,7 @@ def get_all_books(available = None, per_page=10, cursor=None):
         books, new_cursor, more = query.fetch_page(per_page, start_cursor=cursor)
     except (binascii.Error, InvalidArgument):
         raise InvalidCursor()
-    
+
     if new_cursor is not None:
         new_cursor = new_cursor.urlsafe().decode('utf-8')
 
@@ -82,7 +87,6 @@ def update_book(book_id, name=None, author=None):
 
 @with_client_context
 def delete_book(book_id):
-    
     key = Key(Book, book_id)
     if key.get() is None:
         raise BookNotFound()
@@ -110,7 +114,6 @@ def get_member(member_id):
 
 @with_client_context
 def get_all_members(per_page=10, cursor=None):
-
     try:
         cursor = Cursor(urlsafe=cursor)
         members, new_cursor, more = Member.query().fetch_page(per_page, start_cursor=cursor)
@@ -121,6 +124,7 @@ def get_all_members(per_page=10, cursor=None):
         new_cursor = new_cursor.urlsafe().decode('utf-8')
     members = [member.get_dict() for member in members]
     return members, new_cursor, more
+
 
 @with_client_context
 def update_member(member_id, name=None):
@@ -135,8 +139,8 @@ def update_member(member_id, name=None):
 
 @with_client_context
 def delete_member(member_id):
-    member = Member.get_by_id(member_id)
-    if member is None:
+    member = Key(Member, member_id)
+    if member.get() is None:
         raise MemberNotFound()
     member.key.delete()
 
@@ -152,10 +156,10 @@ def get_book_borrowed_by_member(member_id, per_page=10, cursor=None):
     try:
         cursor = Cursor(urlsafe=cursor)
         books, new_cursor, more = query.fetch_page(
-            per_page, 
+            per_page,
             start_cursor=cursor,
-            projection = [Book.name, Book.isbn, Book.author]
-            )
+            projection=[Book.name, Book.isbn, Book.author]
+        )
     except (binascii.Error, InvalidArgument):
         raise InvalidCursor()
 
@@ -181,13 +185,11 @@ def get_borrow_data(per_page=10, cursor=None):
     if new_cursor is not None:
         new_cursor = new_cursor.urlsafe().decode('utf-8')
 
-    return [{'book_id':i.key.id(), 'member_id':i.taken_by.id()} for i in data], new_cursor, more
-
+    return [{'book_id': i.key.id(), 'member_id': i.taken_by.id()} for i in data], new_cursor, more
 
 
 @with_client_context
 def borrow_book(book_id, member_id):
-
     member = Member.get_by_id(member_id)
     if member is None:
         raise MemberNotFound()
@@ -195,13 +197,12 @@ def borrow_book(book_id, member_id):
     book = Book.get_by_id(book_id)
     if book is None:
         raise BookNotFound()
-    if book.taken == True:
+    if book.taken:
         raise BookAlreadyTaken()
 
     book.taken_by = member.key
     book.taken = True
     book.put()
-
 
 
 @with_client_context
@@ -214,7 +215,7 @@ def return_book(book_id, member_id):
     if book is None:
         raise BookNotFound()
 
-    if book.taken_by != member.key:
+    if book.taken == True and book.taken_by != member.key:
         raise BookNotBorrowed()
 
     book.taken_by = None
